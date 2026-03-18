@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Galaxy Clicker - Admin Edition</title>
+    <style>
+        body { background: #050510; color: #00f2fe; font-family: 'Segoe UI', Tahoma, sans-serif; text-align: center; padding: 20px; }
+        .main-container { border: 3px solid #00f2fe; background: rgba(0,0,0,0.9); padding: 25px; display: inline-block; border-radius: 20px; box-shadow: 0 0 30px #00f2fe; min-width: 500px; }
+        .planet { font-size: 120px; cursor: pointer; user-select: none; transition: transform 0.1s; display: block; margin: 10px auto; }
+        .planet:active { transform: scale(0.9); }
+        .row { display: flex; gap: 15px; justify-content: center; margin-top: 20px; }
+        .column { border: 1px solid #333; padding: 15px; border-radius: 10px; flex: 1; background: #0a0a15; }
+        button { background: #00f2fe; color: #000; border: none; padding: 10px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 5px; }
+        button:hover { background: #fff; }
+        input { background: #000; color: #0f0; border: 1px solid #00f2fe; padding: 8px; border-radius: 5px; width: 80%; margin-bottom: 10px; }
+        table { width: 100%; font-size: 14px; margin-top: 10px; border-collapse: collapse; }
+        th { border-bottom: 1px solid #00f2fe; color: yellow; }
+        .admin-box { border: 1px solid red; background: #1a0000; }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    <h1>GALAXY CLICKER</h1>
+    
+    <div style="margin-bottom: 15px;">
+        <input type="text" id="userInput" placeholder="Set Username..." onchange="updateUser()">
+        <h2 style="color:yellow;">STARDUST: <span id="moneyText">0</span></h2>
+    </div>
+
+    <div class="planet" onclick="doClick()">🪐</div>
+
+    <div class="row">
+        <div class="column">
+            <h3>🚀 SHOP</h3>
+            <button onclick="buy(1)">Upgrade Laser<br>Cost: <span id="c1">20</span></button>
+            <button onclick="buy(2)">Auto-Drone<br>Cost: <span id="c2">100</span></button>
+            <p style="font-size:12px;">Power: <span id="pwrText">1</span> | Auto: <span id="autoText">0</span>/s</p>
+        </div>
+
+        <div class="column">
+            <h3>🏆 TOP PILOTS</h3>
+            <table>
+                <thead><tr><th>User</th><th>Dust</th></tr></thead>
+                <tbody id="lbBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="column admin-box" style="margin-top:20px;">
+        <h3 style="color:red;">🛡️ ADMIN TERMINAL</h3>
+        <div id="adminLock">
+            <input type="password" id="adminPass" placeholder="Enter Password">
+            <button onclick="unlock()" style="background:red; color:white;">UNLOCK COMMANDS</button>
+        </div>
+        <div id="adminUI" style="display:none;">
+            <p style="font-size:11px; color:#aaa;">Commands: /give [amt] | /setpower [amt] | /clear</p>
+            <input type="text" id="cmdInput" placeholder="Type command here...">
+            <button onclick="runCommand()" style="background:#0f0;">EXECUTE</button>
+            <p id="status" style="font-size:11px; color:lime;"></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Game Variables
+    let username = "Pilot";
+    let dust = 0;
+    let pwr = 1;
+    let auto = 0;
+    let cost1 = 20;
+    let cost2 = 100;
+    let leaderboard = {"StarLord": 5000, "Zyx": 1200};
+
+    // Auto-Save / Load
+    if(localStorage.getItem("galaxySave_v5")) {
+        let save = JSON.parse(localStorage.getItem("galaxySave_v5"));
+        dust = save.d; pwr = save.p; auto = save.a; cost1 = save.c1; cost2 = save.c2; username = save.u || "Pilot";
+        document.getElementById("userInput").value = username;
+    }
+
+    function updateUser() {
+        username = document.getElementById("userInput").value || "Pilot";
+        save();
+    }
+
+    function doClick() {
+        dust += pwr;
+        updateUI();
+    }
+
+    function buy(type) {
+        if(type === 1 && dust >= cost1) {
+            dust -= cost1; pwr++; cost1 = Math.round(cost1 * 1.5);
+        } else if(type === 2 && dust >= cost2) {
+            dust -= cost2; auto++; cost2 = Math.round(cost2 * 2);
+        }
+        updateUI();
+    }
+
+    function unlock() {
+        if(document.getElementById("adminPass").value === "123454321") {
+            document.getElementById("adminLock").style.display = "none";
+            document.getElementById("adminUI").style.display = "block";
+            document.getElementById("status").innerText = "Ready for input.";
+        } else { alert("ACCESS DENIED"); }
+    }
+
+    function runCommand() {
+        let input = document.getElementById("cmdInput").value;
+        let p = input.split(" ");
+        let cmd = p[0];
+        let val = parseInt(p[1]);
+
+        if(cmd === "/give") {
+            dust += val;
+            document.getElementById("status").innerText = "Added " + val + " dust.";
+        } else if(cmd === "/setpower") {
+            pwr = val;
+            document.getElementById("status").innerText = "Click power set to " + val;
+        } else if(cmd === "/clear") {
+            localStorage.clear();
+            location.reload();
+        } else {
+            document.getElementById("status").innerText = "Unknown Command!";
+        }
+        document.getElementById("cmdInput").value = "";
+        updateUI();
+    }
+
+    setInterval(() => {
+        if(auto > 0) { dust += auto; updateUI(); }
+    }, 1000);
+
+    setInterval(save, 5000); // Auto-save every 5s
+
+    function save() {
+        let data = {d: dust, p: pwr, a: auto, c1: cost1, c2: cost2, u: username};
+        localStorage.setItem("galaxySave_v5", JSON.stringify(data));
+    }
+
+    function updateUI() {
+        document.getElementById("moneyText").innerText = Math.floor(dust);
+        document.getElementById("pwrText").innerText = pwr;
+        document.getElementById("autoText").innerText = auto;
+        document.getElementById("c1").innerText = cost1;
+        document.getElementById("c2").innerText = cost2;
+
+        leaderboard[username] = Math.floor(dust);
+        let lb = document.getElementById("lbBody");
+        lb.innerHTML = "";
+        let sorted = Object.entries(leaderboard).sort((a,b) => b[1] - a[1]);
+        for(let [name, score] of sorted) {
+            lb.innerHTML += `<tr><td>${name}</td><td>${score}</td></tr>`;
+        }
+    }
+    updateUI();
+</script>
+</body>
+</html>
